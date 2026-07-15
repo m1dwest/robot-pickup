@@ -1,0 +1,62 @@
+#include "main_view.h"
+
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
+#include <imgui_stdlib.h>
+
+#include "../state.h"
+
+namespace app {
+
+void MainView::on_enter() {
+    //
+}
+
+void MainView::update(app::State& state) {
+    _viewport.set_frame(state.camera_frame);
+}
+
+void MainView::compose() {
+    ImGuiWindowFlags root_flags =
+        ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse |
+        ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+
+    ImGui::SetNextWindowPos(ImVec2(0, 0));
+    ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
+    const auto root = ImGui::Begin("##root", nullptr, root_flags);
+    ImGui::PopStyleVar(2);
+
+    _viewport.compose();
+    compose_frame_scale();
+}
+
+void MainView::compose_frame_scale() {
+    ImGui::SetNextItemWidth(80.0f);
+    if (ImGui::BeginCombo(
+            "Scale (UI)",
+            _frame_scale_items.at(_frame_scale_id).first.c_str())) {
+        for (int n = 0; n < _frame_scale_items.size(); ++n) {
+            const bool is_selected = (_frame_scale_id == n);
+            if (ImGui::Selectable(_frame_scale_items.at(n).first.c_str(),
+                                  is_selected)) {
+                _frame_scale_id = n;
+                _viewport.set_scale(
+                    _frame_scale_items.at(_frame_scale_id).second);
+            }
+            if (is_selected) {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
+
+    ImGui::SameLine();
+    // ImGui::SliderFloat("x_shift",
+}
+
+}  // namespace app

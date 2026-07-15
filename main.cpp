@@ -9,8 +9,8 @@ int main() {
 
     auto app = app::App{};
 
-    auto result = app.init_window(640, 480, "Robot Control");
-    if (!result) {
+    auto ok = app.init_window(1280, 720, "Robot Control");
+    if (!ok) {
         LOG_ERROR << "Couldn't initialize GUI application";
         return EXIT_FAILURE;
     }

@@ -10,6 +10,8 @@
 #include <plog/Log.h>
 #include <librealsense2/rs.hpp>
 
+#include "views/main_view.h"
+
 namespace {
 
 struct InitError : std::runtime_error {
@@ -147,9 +149,7 @@ app::App::Window create_window(int width, int height, std::string&& title,
 
 namespace app {
 
-App::App() {
-    //
-}
+App::App() : _camera(1280, 720, 30) { _view = std::make_unique<MainView>(); }
 
 App::~App() {
     //
@@ -160,28 +160,16 @@ bool App::should_close() const {
 }
 
 void App::update() {
-    //
+    _state.camera_frame = _camera.wait_for_frame();
+    _view->update(_state);
 }
 
 void App::compose() {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-    // ImGui::ShowDemoWindow();
 
-    ImGuiWindowFlags root_flags =
-        ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
-        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse |
-        ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
-
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-
-    ImGui::SetNextWindowPos(ImVec2(0, 0));
-    ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
-    const auto root = ImGui::Begin("##root", nullptr, root_flags);
-    ImGui::PopStyleVar(2);
-
+    _view->compose();
 
     ImGui::End();
 }
