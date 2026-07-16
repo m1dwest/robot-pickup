@@ -36,9 +36,9 @@ namespace widget {
 
 void Viewport::set_frame(const cv::Mat& frame) {
     if (_tex == 0) {
-        _w = frame.cols;
-        _h = frame.rows;
-        _tex = create_texture(_w, _h);
+        _frame_w = frame.cols;
+        _frame_h = frame.rows;
+        _tex = create_texture(_frame_w, _frame_h);
     }
 
     glBindTexture(GL_TEXTURE_2D, _tex);
@@ -46,7 +46,7 @@ void Viewport::set_frame(const cv::Mat& frame) {
     glTexSubImage2D(GL_TEXTURE_2D,
                     0,     // mip level
                     0, 0,  // xoffset, yoffset
-                    _w, _h,
+                    _frame_w, _frame_h,
                     GL_BGR,  // format of incoming data
                     GL_UNSIGNED_BYTE, frame.data);
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -55,49 +55,45 @@ void Viewport::set_frame(const cv::Mat& frame) {
 void Viewport::set_scale(float scale) { _scale = scale; }
 
 void Viewport::compose() {
-    const auto viewport_scale = ImGui::GetContentRegionAvail().x / _w;
-    const auto viewport_size = ImVec2(_w * viewport_scale, _h * viewport_scale);
-    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
-    const auto _ = widget::ImGuiChildScope("##frame_bg", viewport_size,
-                                           ImGuiChildFlags_None);
-    ImGui::PopStyleColor();
-    const auto region_size = ImGui::GetContentRegionAvail();
-    const auto cursor_pos = ImGui::GetCursorPos();
-    const auto geometry = calc_frame_geometry(region_size, cursor_pos);
-
-    const auto texture_id = (ImTextureID)(intptr_t)_tex;
-    ImGui::SetCursorPos(geometry.pos);
-    ImGui::Image(texture_id, geometry.size, geometry.uv_0, geometry.uv_1);
+    const auto size =
+        ImVec2{static_cast<float>(_frame_w), static_cast<float>(_frame_h)};
+    compose(size);
 }
 
-Viewport::FrameGeometry Viewport::calc_frame_geometry(const ImVec2& available,
-                                                      const ImVec2& frame_pos) {
-    const auto frame_w = static_cast<float>(_w);
-    const auto frame_h = static_cast<float>(_h);
+void Viewport::compose(const ImVec2& size) {
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    const auto _ =
+        widget::ImGuiChildScope("##frame_bg", size, ImGuiChildFlags_Borders,
+                                ImGuiWindowFlags_HorizontalScrollbar);
+    ImGui::PopStyleColor();
+    ImGui::PopStyleVar();
 
-    // const auto ui_scale = (scale == 0.0f)
-    //                           ? 1.0f
-    //                           : std::min(1.0f, available.x / (frame_w *
-    //                           scale));
-    const auto ui_frame_w = (_scale == 0.0f)
-                                ? available.x
-                                : std::min(available.x, available.x * _scale);
-    const auto ui_scale = ui_frame_w / frame_w;
-    const auto ui_frame_h = frame_h * ui_scale;
+    const auto region_size = ImGui::GetContentRegionAvail();
 
-    const auto ui_frame_x = (available.x - ui_frame_w) / 2.0f;
-    const auto ui_frame_y = (available.y - ui_frame_h) / 2.0f;
+    const auto scale = [&region_size, this] {
+        if (_scale == 0.0f) {
+            const auto scale_x = region_size.x / _frame_w;
+            const auto scale_y = region_size.y / _frame_h;
+            return std::min(scale_x, scale_y);
+        } else {
+            return _scale;
+        }
+    }();
 
-    const auto uv_scale = (_scale == 0.0f)
-                              ? 1.0f
-                              : std::min(1.0f, ui_frame_w / (frame_w * _scale));
-    const auto uv_0 = (1.0f - uv_scale) / 2.0f;
-    const auto uv_1 = uv_0 + uv_scale;
+    const auto scaled_frame_w = _frame_w * scale;
+    const auto scaled_frame_h = _frame_h * scale;
+    const auto scaled_frame_size = ImVec2{scaled_frame_w, scaled_frame_h};
 
-    return {.pos = {ui_frame_x, ui_frame_y},
-            .size = {ui_frame_w, ui_frame_h},
-            .uv_0 = {uv_0, uv_0},
-            .uv_1 = {uv_1, uv_1}};
+    const auto cursor_x =
+        std::max((region_size.x - scaled_frame_w) / 2.0f, 0.0f);
+    const auto cursor_y =
+        std::max((region_size.y - scaled_frame_h) / 2.0f, 0.0f);
+    const auto cursor_pos = ImVec2{cursor_x, cursor_y};
+
+    const auto texture_id = (ImTextureID)(intptr_t)_tex;
+    ImGui::SetCursorPos(cursor_pos);
+    ImGui::Image(texture_id, scaled_frame_size);
 }
 
 }  // namespace widget

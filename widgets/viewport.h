@@ -14,7 +14,9 @@ class Viewport : public Widget {
    public:
     void set_frame(const cv::Mat& frame);
     void set_scale(float scale);
+
     void compose() override;
+    void compose(const ImVec2& size);
 
    private:
     struct FrameGeometry {
@@ -27,8 +29,8 @@ class Viewport : public Widget {
     FrameGeometry calc_frame_geometry(const ImVec2& available,
                                       const ImVec2& frame_pos);
 
-    int _w;
-    int _h;
+    float _frame_w;
+    float _frame_h;
     unsigned _tex = 0;
 
     float _scale;

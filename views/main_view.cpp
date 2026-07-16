@@ -31,14 +31,14 @@ void MainView::compose() {
     const auto root = ImGui::Begin("##root", nullptr, root_flags);
     ImGui::PopStyleVar(2);
 
-    _viewport.compose();
+    _viewport.compose(ImVec2{960, 400});
     compose_frame_scale();
 }
 
 void MainView::compose_frame_scale() {
     ImGui::SetNextItemWidth(80.0f);
     if (ImGui::BeginCombo(
-            "Scale (UI)",
+            "Preview scale",
             _frame_scale_items.at(_frame_scale_id).first.c_str())) {
         for (int n = 0; n < _frame_scale_items.size(); ++n) {
             const bool is_selected = (_frame_scale_id == n);
@@ -56,7 +56,6 @@ void MainView::compose_frame_scale() {
     }
 
     ImGui::SameLine();
-    // ImGui::SliderFloat("x_shift",
 }
 
 }  // namespace app
