@@ -31,6 +31,35 @@ GLuint create_texture(int width, int height) {
     return texture;
 }
 
+void draw_polygons(
+    const std::vector<widget::Viewport::OverlayPolygon>& polygons,
+    ImDrawList* draw_list, ImVec2 cursor_screen_pos, float scale) {
+    for (const auto& polygon : polygons) {
+        std::vector<ImVec2> points;
+        points.reserve(polygon.points.size());
+
+        for (const auto& point : polygon.points) {
+            points.emplace_back(cursor_screen_pos.x + point.x * scale,
+                                cursor_screen_pos.y + point.y * scale);
+        }
+
+        draw_list->AddPolyline(
+            points.data(), static_cast<int>(points.size()), polygon.color,
+            polygon.closed ? ImDrawFlags_Closed : ImDrawFlags_None,
+            polygon.thickness);
+    }
+}
+
+void draw_labels(const std::vector<widget::Viewport::OverlayLabel>& labels,
+                 ImDrawList* draw_list, ImVec2 cursor_screen_pos, float scale) {
+    for (const auto& label : labels) {
+        const auto pos = ImVec2{cursor_screen_pos.x + label.pos.x * scale,
+                                cursor_screen_pos.y + label.pos.y * scale};
+
+        draw_list->AddText(pos, label.color, label.text.c_str());
+    }
+}
+
 }  // namespace
 
 namespace widget {
@@ -55,10 +84,17 @@ void Viewport::set_frame(const cv::Mat& frame) {
 
 void Viewport::set_scale(float scale) { _scale = scale; }
 
-void Viewport::clear_overlay() { _overlay_polygons.clear(); }
+void Viewport::clear_overlay() {
+    _overlay_polygons.clear();
+    _overlay_labels.clear();
+}
 
 void Viewport::add_overlay_polygon(OverlayPolygon&& polygon) {
     _overlay_polygons.push_back(std::move(polygon));
+}
+
+void Viewport::add_overlay_label(OverlayLabel&& label) {
+    _overlay_labels.push_back(std::move(label));
 }
 
 void Viewport::compose() {
@@ -106,21 +142,8 @@ void Viewport::compose(const ImVec2& size) {
 
     auto* draw_list = ImGui::GetWindowDrawList();
 
-    for (const auto& overlay_polygon : _overlay_polygons) {
-        std::vector<ImVec2> points;
-        points.reserve(overlay_polygon.points.size());
-
-        for (const auto& point : overlay_polygon.points) {
-            points.emplace_back(image_screen_pos.x + point.x * scale,
-                                image_screen_pos.y + point.y * scale);
-        }
-
-        draw_list->AddPolyline(
-            points.data(), static_cast<int>(points.size()),
-            overlay_polygon.color,
-            overlay_polygon.closed ? ImDrawFlags_Closed : ImDrawFlags_None,
-            overlay_polygon.thickness);
-    }
+    draw_polygons(_overlay_polygons, draw_list, image_screen_pos, scale);
+    draw_labels(_overlay_labels, draw_list, image_screen_pos, scale);
 }
 
 }  // namespace widget

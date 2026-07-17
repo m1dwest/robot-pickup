@@ -19,11 +19,18 @@ class Viewport : public Widget {
         bool closed = true;
     };
 
+    struct OverlayLabel {
+        cv::Point2f pos;
+        std::string text;
+        ImU32 color;
+    };
+
     void set_frame(const cv::Mat& frame);
     void set_scale(float scale);
 
     void clear_overlay();
     void add_overlay_polygon(OverlayPolygon&& polygon);
+    void add_overlay_label(OverlayLabel&& label);
 
     void compose() override;
     void compose(const ImVec2& size);
@@ -36,6 +43,7 @@ class Viewport : public Widget {
     float _scale;
 
     std::vector<OverlayPolygon> _overlay_polygons;
+    std::vector<OverlayLabel> _overlay_labels;
 };
 
 }  // namespace widget

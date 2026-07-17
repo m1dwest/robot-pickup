@@ -5,8 +5,10 @@
 #include <imgui_impl_opengl3.h>
 #include <imgui_stdlib.h>
 #include <plog/Log.h>
+#include <string>
 
 #include "../state.h"
+#include "../utils.h"
 
 namespace app {
 
@@ -18,6 +20,7 @@ void MainView::update(app::State& state) {
     _viewport.set_frame(state.camera_frame);
 
     static const ImU32 polygon_color = IM_COL32(0, 255, 0, 255);
+    static const ImU32 label_color = IM_COL32(255, 0, 0, 255);
 
     _viewport.clear_overlay();
     for (const auto& detection : state.aruco_detections) {
@@ -25,6 +28,11 @@ void MainView::update(app::State& state) {
                                        .color = polygon_color,
                                        .thickness = 2,
                                        .closed = true});
+
+        const auto polygon_center = utils::centroid(detection.corners);
+        _viewport.add_overlay_label({.pos = polygon_center,
+                                     .text = std::to_string(detection.id),
+                                     .color = label_color});
     }
 }
 

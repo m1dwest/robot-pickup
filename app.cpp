@@ -153,7 +153,7 @@ app::App::Window create_window(int width, int height, std::string&& title,
 
 namespace app {
 
-App::App() : _camera(1920, 1080, 30) { _view = std::make_unique<MainView>(); }
+App::App() : _camera(1280, 720, 30) { _view = std::make_unique<MainView>(); }
 
 App::~App() {
     //
