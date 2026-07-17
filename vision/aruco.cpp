@@ -8,14 +8,8 @@ namespace vision {
 Aruco::Aruco() {
     auto params = cv::aruco::DetectorParameters();
     const auto dict =
-        cv::aruco::getPredefinedDictionary(cv::aruco::DICT_5X5_1000);
+        cv::aruco::getPredefinedDictionary(cv::aruco::DICT_5X5_100);
     _detector = cv::aruco::ArucoDetector(dict, params);
-
-    auto dict2 = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_5X5_1000);
-
-    cv::Mat marker;
-    cv::aruco::generateImageMarker(dict, 1, 100, marker, 1);
-    cv::imwrite("marker.png", marker);
 }
 
 void Aruco::detect(const cv::Mat& image) {
