@@ -1,5 +1,8 @@
 #include "app.h"
 
+#include <opencv2/core/types.hpp>
+#include <opencv2/imgproc.hpp>
+
 #include <glad/glad.h>
 
 #include <GLFW/glfw3.h>
@@ -11,6 +14,7 @@
 #include <librealsense2/rs.hpp>
 
 #include "views/main_view.h"
+#include "vision/aruco.h"
 
 namespace {
 
@@ -149,7 +153,7 @@ app::App::Window create_window(int width, int height, std::string&& title,
 
 namespace app {
 
-App::App() : _camera(1280, 720, 30) { _view = std::make_unique<MainView>(); }
+App::App() : _camera(1920, 1080, 30) { _view = std::make_unique<MainView>(); }
 
 App::~App() {
     //
@@ -161,6 +165,11 @@ bool App::should_close() const {
 
 void App::update() {
     _state.camera_frame = _camera.wait_for_frame();
+
+    vision::Aruco aruco;
+    aruco.detect(_state.camera_frame);
+    _state.aruco_detections = aruco.detections();
+
     _view->update(_state);
 }
 

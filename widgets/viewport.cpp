@@ -1,6 +1,7 @@
 #include "viewport.h"
 
 #include <glad/glad.h>
+#include <imgui.h>
 #include <plog/Log.h>
 
 #include "guards.h"
@@ -35,13 +36,13 @@ GLuint create_texture(int width, int height) {
 namespace widget {
 
 void Viewport::set_frame(const cv::Mat& frame) {
-    if (_tex == 0) {
+    if (_frame_tex == 0) {
         _frame_w = frame.cols;
         _frame_h = frame.rows;
-        _tex = create_texture(_frame_w, _frame_h);
+        _frame_tex = create_texture(_frame_w, _frame_h);
     }
 
-    glBindTexture(GL_TEXTURE_2D, _tex);
+    glBindTexture(GL_TEXTURE_2D, _frame_tex);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glTexSubImage2D(GL_TEXTURE_2D,
                     0,     // mip level
@@ -53,6 +54,12 @@ void Viewport::set_frame(const cv::Mat& frame) {
 }
 
 void Viewport::set_scale(float scale) { _scale = scale; }
+
+void Viewport::clear_overlay() { _overlay_polygons.clear(); }
+
+void Viewport::add_overlay_polygon(OverlayPolygon&& polygon) {
+    _overlay_polygons.push_back(std::move(polygon));
+}
 
 void Viewport::compose() {
     const auto size =
@@ -91,9 +98,29 @@ void Viewport::compose(const ImVec2& size) {
         std::max((region_size.y - scaled_frame_h) / 2.0f, 0.0f);
     const auto cursor_pos = ImVec2{cursor_x, cursor_y};
 
-    const auto texture_id = (ImTextureID)(intptr_t)_tex;
+    const auto texture_id = (ImTextureID)(intptr_t)_frame_tex;
     ImGui::SetCursorPos(cursor_pos);
+    const auto image_screen_pos = ImGui::GetCursorScreenPos();
+
     ImGui::Image(texture_id, scaled_frame_size);
+
+    auto* draw_list = ImGui::GetWindowDrawList();
+
+    for (const auto& overlay_polygon : _overlay_polygons) {
+        std::vector<ImVec2> points;
+        points.reserve(overlay_polygon.points.size());
+
+        for (const auto& point : overlay_polygon.points) {
+            points.emplace_back(image_screen_pos.x + point.x * scale,
+                                image_screen_pos.y + point.y * scale);
+        }
+
+        draw_list->AddPolyline(
+            points.data(), static_cast<int>(points.size()),
+            overlay_polygon.color,
+            overlay_polygon.closed ? ImDrawFlags_Closed : ImDrawFlags_None,
+            overlay_polygon.thickness);
+    }
 }
 
 }  // namespace widget

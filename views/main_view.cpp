@@ -4,6 +4,7 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 #include <imgui_stdlib.h>
+#include <plog/Log.h>
 
 #include "../state.h"
 
@@ -15,6 +16,16 @@ void MainView::on_enter() {
 
 void MainView::update(app::State& state) {
     _viewport.set_frame(state.camera_frame);
+
+    static const ImU32 polygon_color = IM_COL32(0, 255, 0, 255);
+
+    _viewport.clear_overlay();
+    for (const auto& detection : state.aruco_detections) {
+        _viewport.add_overlay_polygon({.points = detection.corners,
+                                       .color = polygon_color,
+                                       .thickness = 2,
+                                       .closed = true});
+    }
 }
 
 void MainView::compose() {

@@ -4,20 +4,6 @@
 
 namespace {
 
-// inline cv::Mat frame_to_mat(auto&& frame, int type) {
-//     return cv::Mat(frame.get_height(), frame.get_width(), type,
-//                    (void*)frame.get_data());
-// }
-//
-// float get_depth_scale(const std::optional<rs2::depth_sensor>& sensor) {
-//     if (sensor.has_value()) {
-//         return sensor.value().get_depth_scale();
-//     } else {
-//         LOG_WARNING << "Failed to get depth scale; defaulting to 0.001\n";
-//         return 0.001;
-//     }
-// }
-
 template <typename T>
 std::optional<T> get_sensor(const rs2::pipeline_profile& profile) {
     try {
@@ -45,62 +31,9 @@ void check_connected_cameras() {
     }
 }
 
-// cv::Mat rotate_image(cv::Mat&& mat, float angle) {
-//     const auto center = cv::Point2f(static_cast<float>(mat.cols) / 2.0f,
-//                                     static_cast<float>(mat.rows) / 2.0f);
-//     const auto scale = 1.0f;
-//     cv::Mat rotation_mat = cv::getRotationMatrix2D(center, angle, scale);
-//
-//     cv::Mat rotated;
-//     cv::warpAffine(mat, rotated, rotation_mat, mat.size());
-//
-//     return rotated;
-// }
-//
-// void render_grid(cv::Mat& image, const cv::Scalar color, int size, int
-// offset_x,
-//                  int offset_y) {
-//     static const auto render_line = [&image, &color, thickness = 1,
-//                                      line_type = cv::LINE_AA](
-//                                         int x_1, int y_1, int x_2, int y_2) {
-//         cv::Point p_1{x_1, y_1};
-//         cv::Point p_2{x_2, y_2};
-//         cv::line(image, p_1, p_2, color, thickness, line_type);
-//     };
-//
-//     static const auto min_offset = [](int size, int offset) -> int {
-//         if (offset < size) {
-//             return offset;
-//         } else {
-//             int x = offset / size;
-//             return offset % x;
-//         }
-//     };
-//
-//     const auto min_offset_x = min_offset(size, offset_x);
-//     const auto min_offset_y = min_offset(size, offset_y);
-//
-//     for (auto x = size - min_offset_x; x < image.cols; x += size) {
-//         render_line(x, 0, x, image.rows);
-//     }
-//
-//     for (auto y = size - min_offset_y; y < image.rows; y += size) {
-//         render_line(0, y, image.cols, y);
-//     }
-// }
-//
-// void render_centerline(cv::Mat& image, const cv::Scalar color, int offset) {
-//     const auto thickness = 2;
-//     const auto line_type = cv::LINE_AA;
-//
-//     cv::Point p_1{0, image.rows / 2 + offset};
-//     cv::Point p_2{image.cols, image.rows / 2 + offset};
-//
-//     cv::line(image, p_1, p_2, color, thickness, line_type);
-// }
 inline cv::Mat frame_to_mat(auto&& frame, int type) {
     return cv::Mat(frame.get_height(), frame.get_width(), type,
-                   (void*)frame.get_data());
+                   (void*)frame.get_data(), cv::Mat::AUTO_STEP);
 }
 
 }  // namespace

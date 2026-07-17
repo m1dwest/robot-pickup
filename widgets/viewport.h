@@ -12,28 +12,30 @@ namespace widget {
 
 class Viewport : public Widget {
    public:
+    struct OverlayPolygon {
+        std::vector<cv::Point2f> points;
+        ImU32 color;
+        float thickness;
+        bool closed = true;
+    };
+
     void set_frame(const cv::Mat& frame);
     void set_scale(float scale);
+
+    void clear_overlay();
+    void add_overlay_polygon(OverlayPolygon&& polygon);
 
     void compose() override;
     void compose(const ImVec2& size);
 
    private:
-    struct FrameGeometry {
-        ImVec2 pos;
-        ImVec2 size;
-        ImVec2 uv_0;
-        ImVec2 uv_1;
-    };
-
-    FrameGeometry calc_frame_geometry(const ImVec2& available,
-                                      const ImVec2& frame_pos);
-
     float _frame_w;
     float _frame_h;
-    unsigned _tex = 0;
+    unsigned _frame_tex = 0;
 
     float _scale;
+
+    std::vector<OverlayPolygon> _overlay_polygons;
 };
 
 }  // namespace widget
