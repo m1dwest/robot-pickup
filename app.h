@@ -12,6 +12,10 @@ struct GLFWwindow;
 
 namespace app {
 
+struct InitError : std::runtime_error {
+    using std::runtime_error::runtime_error;
+};
+
 class App {
    public:
     struct Window {
@@ -31,8 +35,8 @@ class App {
     void render();
     void input();
 
-    [[nodiscard]] bool init_window(unsigned width, unsigned height,
-                                   std::string title);
+    void init_window(unsigned width, unsigned height, std::string title);
+    void init_camera(unsigned width, unsigned height, unsigned fps);
 
    private:
     bool _is_vsync_enabled = true;

@@ -7,8 +7,9 @@ namespace vision {
 
 class Camera {
    public:
-    Camera(int width, int height, int fps);
-    ~Camera();
+    Camera();
+
+    void init(int width, int height, int fps);
 
     Camera(const Camera&) = delete;
     Camera& operator=(const Camera&) = delete;
@@ -22,9 +23,9 @@ class Camera {
     void set_exposure(float exposure);
 
    private:
-    int _width;
-    int _height;
-    int _fps;
+    int _width = 0;
+    int _height = 0;
+    int _fps = 0;
 
     mutable rs2::pipeline _pipeline;
     rs2::pipeline_profile _profile;

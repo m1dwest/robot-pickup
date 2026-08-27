@@ -9,9 +9,17 @@ int main() {
 
     auto app = app::App{};
 
-    auto ok = app.init_window(1280, 720, "Robot Control");
-    if (!ok) {
-        LOG_ERROR << "Couldn't initialize GUI application";
+    try {
+        app.init_window(1280, 720, "Robot Control");
+        app.init_camera(1280, 720, 30);
+    } catch (const app::InitError& e) {
+        LOG_ERROR << "Couldn't initialize GUI application:";
+        LOG_ERROR << e.what();
+        return EXIT_FAILURE;
+    } catch (const rs2::error& e) {
+        LOG_ERROR << "Couldn't initialize RealSense camera:";
+        LOG_ERROR << e.what();
+        LOG_ERROR << "Failed function: " << e.get_failed_function();
         return EXIT_FAILURE;
     }
 

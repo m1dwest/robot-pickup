@@ -40,17 +40,20 @@ inline cv::Mat frame_to_mat(auto&& frame, int type) {
 
 namespace vision {
 
-Camera::Camera(int width, int height, int fps)
-    : _width(width), _height(height), _fps(fps) {
-    check_connected_cameras();
+Camera::Camera() { check_connected_cameras(); }
 
+void Camera::init(int width, int height, int fps) {
     rs2::config cfg;
+    cfg.disable_all_streams();
     cfg.enable_stream(RS2_STREAM_COLOR, width, height, RS2_FORMAT_BGR8, fps);
+
     _profile = _pipeline.start(cfg);
     _color_sensor = get_sensor<rs2::color_sensor>(_profile);
-}
 
-Camera::~Camera() { _pipeline.stop(); }
+    _width = width;
+    _height = height;
+    _fps = fps;
+}
 
 cv::Mat Camera::wait_for_frame(
     unsigned timeout_ms /*= RS2_DEFAULT_TIMEOUT*/) const {

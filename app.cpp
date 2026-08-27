@@ -18,10 +18,6 @@
 
 namespace {
 
-struct InitError : std::runtime_error {
-    using std::runtime_error::runtime_error;
-};
-
 static void glfw_error_callback(int error, const char* description) {
     LOG_ERROR << "GLFW error: " << error << ", " << description;
 }
@@ -51,7 +47,7 @@ void init_glfw() {
 
         auto what = "Couldn't initialize GLFW" +
                     ((log != nullptr) ? ": " + std::string(log) : "");
-        throw InitError{std::move(what)};
+        throw app::InitError{std::move(what)};
     }
 
     glfwWindowHint(GLFW_DOUBLEBUFFER, 1);
@@ -94,7 +90,7 @@ void init_glfw() {
 
 void init_glad() {
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        throw InitError{"Couldn't initialize GLAD"};
+        throw app::InitError{"Couldn't initialize GLAD"};
     }
 
     LOG_INFO << "OpenGL renderer: " << glGetString(GL_RENDERER);
@@ -106,11 +102,13 @@ void init_imgui(GLFWwindow* window) {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     if (!ImGui_ImplGlfw_InitForOpenGL(window, true)) {
-        throw InitError{"Couldn't initialize Dear ImGui GLFW implementation"};
+        throw app::InitError{
+            "Couldn't initialize Dear ImGui GLFW implementation"};
     }
 
     if (!ImGui_ImplOpenGL3_Init()) {
-        throw InitError{"Couldn't initialize Dear ImGui OpenGL implementation"};
+        throw app::InitError{
+            "Couldn't initialize Dear ImGui OpenGL implementation"};
     }
 }
 
@@ -128,7 +126,7 @@ app::App::Window create_window(int width, int height, std::string&& title,
                                      NULL,  // monitor
                                      NULL);
     if (!window.window) {
-        throw InitError{"Couldn't create a GLFW window"};
+        throw app::InitError{"Couldn't create a GLFW window"};
     }
 
     glfwSetWindowPos(window.window, 100, 100);
@@ -153,7 +151,7 @@ app::App::Window create_window(int width, int height, std::string&& title,
 
 namespace app {
 
-App::App() : _camera(1280, 720, 30) { _view = std::make_unique<MainView>(); }
+App::App() { _view = std::make_unique<MainView>(); }
 
 App::~App() {
     //
@@ -209,28 +207,26 @@ void App::input() {
     // }
 }
 
-bool App::init_window(unsigned width, unsigned height, std::string title) {
-    try {
-        init_glfw();
-        LOG_INFO << "GLFW initialized";
+void App::init_window(unsigned width, unsigned height, std::string title) {
+    init_glfw();
+    LOG_INFO << "GLFW initialized";
 
-        _window =
-            create_window(width, height, std::move(title), _is_vsync_enabled);
-        glfwSetWindowUserPointer(_window->window, this);
-        glfwSetKeyCallback(_window->window, key_callback);
-        LOG_INFO << "GLFW window created";
+    _window = create_window(width, height, std::move(title), _is_vsync_enabled);
+    glfwSetWindowUserPointer(_window->window, this);
+    glfwSetKeyCallback(_window->window, key_callback);
+    LOG_INFO << "GLFW window created";
 
-        init_glad();
-        LOG_INFO << "GLAD initialized";
+    init_glad();
+    LOG_INFO << "GLAD initialized";
 
-        init_imgui(_window->window);
-        LOG_INFO << "Dear ImGui initialized";
-    } catch (InitError e) {
-        LOG_ERROR << "Initialization failed:";
-        LOG_ERROR << e.what();
-    }
+    init_imgui(_window->window);
+    LOG_INFO << "Dear ImGui initialized";
+}
 
-    return true;
+void App::init_camera(unsigned width, unsigned height, unsigned fps) {
+    _camera.init(width, height, fps);
+    LOG_INFO << std::format("Camera initialized: {}x{}, {} fps", width, height,
+                            fps);
 }
 
 }  // namespace app

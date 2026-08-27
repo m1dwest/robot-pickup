@@ -10,6 +10,7 @@ find_package(glad CONFIG REQUIRED)
 find_package(realsense2 CONFIG REQUIRED)
 find_package(OpenCV CONFIG REQUIRED)
 find_package(plog CONFIG REQUIRED)
+find_package(lz4 CONFIG REQUIRED)
 
 file(GLOB_RECURSE APP_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/*.h"

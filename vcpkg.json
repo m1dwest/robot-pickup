@@ -7,6 +7,7 @@
     "glfw3",
     "glad",
     "opencv4",
-    "plog"
+    "plog",
+    "realsense2"
   ]
 }
