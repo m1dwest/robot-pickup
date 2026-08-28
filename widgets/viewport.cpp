@@ -84,6 +84,17 @@ void Viewport::set_frame(const cv::Mat& frame) {
 
 void Viewport::set_scale(float scale) { _scale = scale; }
 
+void Viewport::update_clicked_position() {
+    ImVec2 item_min = ImGui::GetItemRectMin();
+    ImVec2 mouse = ImGui::GetMousePos();
+
+    _clicked_pos = {mouse.x - item_min.x, mouse.y - item_min.y};
+}
+
+std::optional<ImVec2> Viewport::get_clicked_position() const {
+    return _clicked_pos;
+}
+
 void Viewport::clear_overlay() {
     _overlay_polygons.clear();
     _overlay_labels.clear();
@@ -139,6 +150,9 @@ void Viewport::compose(const ImVec2& size) {
     const auto image_screen_pos = ImGui::GetCursorScreenPos();
 
     ImGui::Image(texture_id, scaled_frame_size);
+    if (ImGui::IsItemClicked()) {
+        update_clicked_position();
+    }
 
     auto* draw_list = ImGui::GetWindowDrawList();
 

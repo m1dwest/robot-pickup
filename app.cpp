@@ -169,7 +169,7 @@ void App::update() {
                               : camera_frame.depth;
 
     vision::Aruco aruco;
-    aruco.detect(_state.camera_frame);
+    aruco.detect(camera_frame.color);
     _state.aruco_detections = aruco.detections();
 
     _view->update(_state);

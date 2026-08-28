@@ -8,6 +8,7 @@
 #include <string>
 
 #include "../utils.h"
+#include "../widgets/guards.h"
 
 namespace app {
 
@@ -50,25 +51,11 @@ void MainView::compose() {
     const auto root = ImGui::Begin("##root", nullptr, root_flags);
     ImGui::PopStyleVar(2);
 
-    _viewport.compose(ImVec2{960, 400});
-    compose_frame_scale();
-
-    ImGui::SetNextItemWidth(80.0f);
-    if (int selected_stream = static_cast<int>(_selected_stream);
-        ImGui::BeginCombo("Stream",
-                          _stream_items.at(selected_stream).c_str())) {
-        for (int n = 0; n < _stream_items.size(); ++n) {
-            const bool is_selected = (selected_stream == n);
-            if (ImGui::Selectable(_stream_items.at(n).c_str(), is_selected)) {
-                _selected_stream = static_cast<SelectedStream>(n);
-            }
-
-            if (is_selected) {
-                ImGui::SetItemDefaultFocus();
-            }
-        }
-        ImGui::EndCombo();
-    }
+    _viewport.compose(_viewport_size);
+    ImGui::SameLine();
+    _picker.set_clicked_pos(_viewport.get_clicked_position());
+    _picker.compose();
+    compose_viewport_control();
 }
 
 void MainView::compose_frame_scale() {
@@ -90,8 +77,34 @@ void MainView::compose_frame_scale() {
         }
         ImGui::EndCombo();
     }
+}
 
+void MainView::compose_stream_combo() {
+    ImGui::SetNextItemWidth(80.0f);
+    if (int selected_stream = static_cast<int>(_selected_stream);
+        ImGui::BeginCombo("Stream",
+                          _stream_items.at(selected_stream).c_str())) {
+        for (int n = 0; n < _stream_items.size(); ++n) {
+            const bool is_selected = (selected_stream == n);
+            if (ImGui::Selectable(_stream_items.at(n).c_str(), is_selected)) {
+                _selected_stream = static_cast<SelectedStream>(n);
+            }
+
+            if (is_selected) {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
+}
+
+void MainView::compose_viewport_control() {
+    const auto _ = widget::ImGuiChildScope(
+        "##viewport_control", ImVec2(_viewport_size.x, 40),
+        ImGuiChildFlags_Borders, ImGuiWindowFlags_HorizontalScrollbar);
+    compose_frame_scale();
     ImGui::SameLine();
+    compose_stream_combo();
 }
 
 }  // namespace app

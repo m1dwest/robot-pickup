@@ -1,6 +1,8 @@
 #pragma once
 
+#include <imgui.h>
 #include "../state.h"
+#include "../widgets/picker.h"
 #include "../widgets/viewport.h"
 #include "view.h"
 
@@ -14,8 +16,11 @@ class MainView : public View {
 
    private:
     void compose_frame_scale();
+    void compose_stream_combo();
+    void compose_viewport_control();
 
     widget::Viewport _viewport;
+    widget::Picker _picker;
 
     std::array<std::pair<std::string, float>, 4> _frame_scale_items{
         std::pair{"Fit", 0.0f}, std::pair{"200%", 2.0f},
@@ -24,6 +29,8 @@ class MainView : public View {
 
     std::array<std::string, 2> _stream_items{"Color", "Depth"};
     SelectedStream _selected_stream = SelectedStream::Color;
+
+    ImVec2 _viewport_size = ImVec2{960, 400};
 };
 
 }  // namespace app
