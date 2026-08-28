@@ -1,6 +1,10 @@
 #include "camera.h"
 
+#include <librealsense2/h/rs_sensor.h>
+#include <opencv2/core/hal/interface.h>
 #include <plog/Log.h>
+#include <librealsense2/hpp/rs_frame.hpp>
+#include <librealsense2/hpp/rs_sensor.hpp>
 
 namespace {
 
@@ -31,42 +35,76 @@ void check_connected_cameras() {
     }
 }
 
-inline cv::Mat frame_to_mat(auto&& frame, int type) {
+inline cv::Mat frame_to_mat(const rs2::video_frame& frame, int type) {
     return cv::Mat(frame.get_height(), frame.get_width(), type,
                    (void*)frame.get_data(), cv::Mat::AUTO_STEP);
+}
+
+float get_depth_scale(const std::optional<rs2::depth_sensor>& sensor) {
+    if (sensor.has_value()) {
+        return sensor.value().get_depth_scale();
+    } else {
+        LOG_WARNING << "Failed to get depth scale; defaulting to 0.001\n";
+        return 0.001;
+    }
 }
 
 }  // namespace
 
 namespace vision {
 
-Camera::Camera() { check_connected_cameras(); }
+Camera::Camera() : _align_to_color(RS2_STREAM_COLOR) {
+    check_connected_cameras();
+}
 
 void Camera::init(int width, int height, int fps) {
     rs2::config cfg;
     cfg.disable_all_streams();
     cfg.enable_stream(RS2_STREAM_COLOR, width, height, RS2_FORMAT_BGR8, fps);
+    cfg.enable_stream(RS2_STREAM_DEPTH, width, height, RS2_FORMAT_Z16, fps);
 
     _profile = _pipeline.start(cfg);
     _color_sensor = get_sensor<rs2::color_sensor>(_profile);
+    _depth_sensor = get_sensor<rs2::depth_sensor>(_profile);
+    _depth_scale = get_depth_scale(_depth_sensor);
 
     _width = width;
     _height = height;
     _fps = fps;
 }
 
-cv::Mat Camera::wait_for_frame(
-    unsigned timeout_ms /*= RS2_DEFAULT_TIMEOUT*/) const {
+CameraFrame Camera::wait_for_frame(
+    unsigned timeout_ms /*= RS2_DEFAULT_TIMEOUT*/) {
     const auto frames = _pipeline.wait_for_frames(timeout_ms);
-    auto color = frames.get_color_frame();
+    const auto aligned_frames = _align_to_color.process(frames);
+    auto color = aligned_frames.get_color_frame();
+    auto depth = aligned_frames.get_depth_frame();
     double ts_ms = color.get_timestamp();
 
-    if (!color) {
-        LOG_WARNING << "Couldn't get color frame";
-        return cv::Mat(_width, _height, CV_8UC3);
-    }
+    const auto color_mat = [&] {
+        if (!color) {
+            LOG_WARNING << "Couldn't get color frame";
+            return cv::Mat(_width, _height, CV_8UC3);
+        } else {
+            return frame_to_mat(color, CV_8UC3);
+        }
+    }();
 
-    return frame_to_mat(std::move(color), CV_8UC3);
+    const auto depth_mat = [&] {
+        if (!depth) {
+            LOG_WARNING << "Couldn't get depth frame";
+            return cv::Mat(_width, _height, CV_8UC3);
+        } else {
+            auto depth_colorized = _colorizer.process(depth);
+            return frame_to_mat(depth_colorized, CV_8UC3);
+        };
+    }();
+
+    return {
+        .color = color_mat,
+        .depth = depth_mat,
+        .timestamp = ts_ms,
+    };
 }
 
 void Camera::set_option(rs2_option option, float value) {
@@ -109,5 +147,4 @@ void Camera::set_exposure(float exposure) {
 std::optional<float> Camera::get_exposure() const {
     return get_option(RS2_OPTION_EXPOSURE);
 }
-
 }  // namespace vision

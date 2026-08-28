@@ -11,7 +11,7 @@ int main() {
 
     try {
         app.init_window(1280, 720, "Robot Control");
-        app.init_camera(1280, 720, 30);
+        app.init_camera(640, 480, 30);
     } catch (const app::InitError& e) {
         LOG_ERROR << "Couldn't initialize GUI application:";
         LOG_ERROR << e.what();

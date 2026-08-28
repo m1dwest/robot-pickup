@@ -162,7 +162,7 @@ bool App::should_close() const {
 }
 
 void App::update() {
-    _state.camera_frame = _camera.wait_for_frame();
+    _state.camera_frame = _camera.wait_for_frame().depth;
 
     vision::Aruco aruco;
     aruco.detect(_state.camera_frame);
