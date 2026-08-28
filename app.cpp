@@ -13,6 +13,7 @@
 #include <plog/Log.h>
 #include <librealsense2/rs.hpp>
 
+#include "state.h"
 #include "views/main_view.h"
 #include "vision/aruco.h"
 
@@ -162,7 +163,10 @@ bool App::should_close() const {
 }
 
 void App::update() {
-    _state.camera_frame = _camera.wait_for_frame().depth;
+    const auto camera_frame = _camera.wait_for_frame();
+    _state.camera_frame = _state.selected_stream == SelectedStream::Color
+                              ? camera_frame.color
+                              : camera_frame.depth;
 
     vision::Aruco aruco;
     aruco.detect(_state.camera_frame);

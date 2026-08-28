@@ -7,7 +7,6 @@
 #include <plog/Log.h>
 #include <string>
 
-#include "../state.h"
 #include "../utils.h"
 
 namespace app {
@@ -17,6 +16,7 @@ void MainView::on_enter() {
 }
 
 void MainView::update(app::State& state) {
+    state.selected_stream = _selected_stream;
     _viewport.set_frame(state.camera_frame);
 
     static const ImU32 polygon_color = IM_COL32(0, 255, 0, 255);
@@ -52,6 +52,23 @@ void MainView::compose() {
 
     _viewport.compose(ImVec2{960, 400});
     compose_frame_scale();
+
+    ImGui::SetNextItemWidth(80.0f);
+    if (int selected_stream = static_cast<int>(_selected_stream);
+        ImGui::BeginCombo("Stream",
+                          _stream_items.at(selected_stream).c_str())) {
+        for (int n = 0; n < _stream_items.size(); ++n) {
+            const bool is_selected = (selected_stream == n);
+            if (ImGui::Selectable(_stream_items.at(n).c_str(), is_selected)) {
+                _selected_stream = static_cast<SelectedStream>(n);
+            }
+
+            if (is_selected) {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
 }
 
 void MainView::compose_frame_scale() {

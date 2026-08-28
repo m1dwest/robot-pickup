@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../state.h"
 #include "../widgets/viewport.h"
 #include "view.h"
 
@@ -19,8 +20,10 @@ class MainView : public View {
     std::array<std::pair<std::string, float>, 4> _frame_scale_items{
         std::pair{"Fit", 0.0f}, std::pair{"200%", 2.0f},
         std::pair{"100%", 1.0f}, std::pair{"50%", 0.5f}};
-
     int _frame_scale_id = 0;
+
+    std::array<std::string, 2> _stream_items{"Color", "Depth"};
+    SelectedStream _selected_stream = SelectedStream::Color;
 };
 
 }  // namespace app

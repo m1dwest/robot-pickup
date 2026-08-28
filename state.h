@@ -6,7 +6,10 @@
 
 namespace app {
 
+enum SelectedStream { Color, Depth };
+
 struct State {
+    SelectedStream selected_stream = SelectedStream::Color;
     cv::Mat camera_frame;
     std::vector<vision::Aruco::Detection> aruco_detections;
 };
