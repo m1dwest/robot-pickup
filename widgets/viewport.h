@@ -28,7 +28,7 @@ class Viewport : public Widget {
     void set_frame(const cv::Mat& frame);
     void set_scale(float scale);
     void update_clicked_position();
-    std::optional<ImVec2> get_clicked_position() const;
+    std::optional<ImVec2> get_clicked_frame_pos() const;
 
     void clear_overlay();
     void add_overlay_polygon(OverlayPolygon&& polygon);
@@ -41,9 +41,10 @@ class Viewport : public Widget {
     float _frame_w;
     float _frame_h;
     unsigned _frame_tex = 0;
-    std::optional<ImVec2> _clicked_pos;
+    std::optional<ImVec2> _clicked_frame_pos;
 
     float _scale;
+    float _true_scale;
 
     std::vector<OverlayPolygon> _overlay_polygons;
     std::vector<OverlayLabel> _overlay_labels;

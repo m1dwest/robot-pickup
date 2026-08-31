@@ -53,6 +53,45 @@ float get_depth_scale(const std::optional<rs2::depth_sensor>& sensor) {
 
 namespace vision {
 
+CameraFrame::CameraFrame() : _color(rs2::frame{}), _depth(rs2::frame{}) {}
+
+CameraFrame::CameraFrame(rs2::video_frame color, rs2::depth_frame depth,
+                         double timestamp)
+    : _color(std::move(color)),
+      _depth(std::move(depth)),
+      timestamp(timestamp) {}
+
+cv::Mat CameraFrame::get_color_rgb() const {
+    if (!_color_rgb.has_value()) {
+        if (!_color) {
+            LOG_WARNING << "Couldn't get color frame";
+            _color_rgb =
+                cv::Mat(_color.get_width(), _color.get_height(), CV_8UC3);
+        } else {
+            _color_rgb = frame_to_mat(_color, CV_8UC3);
+        }
+    }
+    return _color_rgb.value();
+}
+
+cv::Mat CameraFrame::get_depth_rgb() const {
+    if (!_depth_rgb.has_value()) {
+        if (!_depth) {
+            LOG_WARNING << "Couldn't get depth frame";
+            _depth_rgb =
+                cv::Mat(_depth.get_width(), _depth.get_height(), CV_8UC3);
+        } else {
+            auto depth_rgb = _colorizer.process(_depth);
+            _depth_rgb = frame_to_mat(depth_rgb, CV_8UC3);
+        }
+    }
+    return _depth_rgb.value();
+}
+
+float CameraFrame::get_distance(int x, int y) const {
+    return _depth.get_distance(x, y);
+}
+
 Camera::Camera() : _align_to_color(RS2_STREAM_COLOR) {
     check_connected_cameras();
 }
@@ -81,30 +120,7 @@ CameraFrame Camera::wait_for_frame(
     auto depth = aligned_frames.get_depth_frame();
     double ts_ms = color.get_timestamp();
 
-    const auto color_mat = [&] {
-        if (!color) {
-            LOG_WARNING << "Couldn't get color frame";
-            return cv::Mat(_width, _height, CV_8UC3);
-        } else {
-            return frame_to_mat(color, CV_8UC3);
-        }
-    }();
-
-    const auto depth_mat = [&] {
-        if (!depth) {
-            LOG_WARNING << "Couldn't get depth frame";
-            return cv::Mat(_width, _height, CV_8UC3);
-        } else {
-            auto depth_colorized = _colorizer.process(depth);
-            return frame_to_mat(depth_colorized, CV_8UC3);
-        };
-    }();
-
-    return {
-        .color = color_mat,
-        .depth = depth_mat,
-        .timestamp = ts_ms,
-    };
+    return CameraFrame{color, depth, ts_ms};
 }
 
 void Camera::set_option(rs2_option option, float value) {

@@ -17,12 +17,14 @@ class Picker : public Widget {
 
     bool is_enabled() const;
     void set_clicked_pos(const std::optional<ImVec2>& pos);
+    void set_depth(const std::optional<float>& depth);
 
    private:
     ImVec2 _size = ImVec2{360, 240};
 
     bool _is_enabled = false;
     std::optional<ImVec2> _clicked_pos;
+    std::optional<float> _depth;
 };
 
 }  // namespace widget

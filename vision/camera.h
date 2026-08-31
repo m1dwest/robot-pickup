@@ -8,9 +8,24 @@
 namespace vision {
 
 struct CameraFrame {
-    cv::Mat color;
-    cv::Mat depth;
-    double timestamp;
+   public:
+    double timestamp = 0;
+
+    CameraFrame();
+    CameraFrame(rs2::video_frame color, rs2::depth_frame depth,
+                double timestamp);
+
+    cv::Mat get_color_rgb() const;
+    cv::Mat get_depth_rgb() const;
+    float get_distance(int x, int y) const;
+
+   private:
+    rs2::video_frame _color;
+    rs2::depth_frame _depth;
+    mutable std::optional<cv::Mat> _color_rgb;
+    mutable std::optional<cv::Mat> _depth_rgb;
+
+    rs2::colorizer _colorizer;
 };
 
 class Camera {
@@ -40,7 +55,6 @@ class Camera {
     std::optional<rs2::sensor> _color_sensor;
     std::optional<rs2::depth_sensor> _depth_sensor;
     rs2::align _align_to_color;
-    rs2::colorizer _colorizer;
     float _depth_scale = 0.01f;
 };
 

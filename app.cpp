@@ -164,13 +164,12 @@ bool App::should_close() const {
 
 void App::update() {
     const auto camera_frame = _camera.wait_for_frame();
-    _state.camera_frame = _state.selected_stream == SelectedStream::Color
-                              ? camera_frame.color
-                              : camera_frame.depth;
 
     vision::Aruco aruco;
-    aruco.detect(camera_frame.color);
+    aruco.detect(camera_frame.get_color_rgb());
     _state.aruco_detections = aruco.detections();
+
+    _state.camera_frame = camera_frame;
 
     _view->update(_state);
 }

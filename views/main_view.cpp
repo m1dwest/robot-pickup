@@ -17,8 +17,9 @@ void MainView::on_enter() {
 }
 
 void MainView::update(app::State& state) {
-    state.selected_stream = _selected_stream;
-    _viewport.set_frame(state.camera_frame);
+    _viewport.set_frame(_selected_stream == SelectedStream::Color
+                            ? state.camera_frame.get_color_rgb()
+                            : state.camera_frame.get_depth_rgb());
 
     static const ImU32 polygon_color = IM_COL32(0, 255, 0, 255);
     static const ImU32 label_color = IM_COL32(255, 0, 0, 255);
@@ -34,6 +35,16 @@ void MainView::update(app::State& state) {
         _viewport.add_overlay_label({.pos = polygon_center,
                                      .text = std::to_string(detection.id),
                                      .color = label_color});
+    }
+
+    if (_picker.is_enabled()) {
+        const auto depth = _viewport.get_clicked_frame_pos().transform(
+            [&state](const auto& pos) {
+                return state.camera_frame.get_distance(std::round(pos.x),
+                                                       std::round(pos.y));
+            });
+        // TODO calculate depth only when coordinates has changed
+        _picker.set_depth(depth);
     }
 }
 
@@ -53,7 +64,9 @@ void MainView::compose() {
 
     _viewport.compose(_viewport_size);
     ImGui::SameLine();
-    _picker.set_clicked_pos(_viewport.get_clicked_position());
+    if (_picker.is_enabled()) {
+        _picker.set_clicked_pos(_viewport.get_clicked_frame_pos());
+    }
     _picker.compose();
     compose_viewport_control();
 }

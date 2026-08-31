@@ -88,11 +88,13 @@ void Viewport::update_clicked_position() {
     ImVec2 item_min = ImGui::GetItemRectMin();
     ImVec2 mouse = ImGui::GetMousePos();
 
-    _clicked_pos = {mouse.x - item_min.x, mouse.y - item_min.y};
+    auto viewport_x = mouse.x - item_min.x;
+    auto viewport_y = mouse.y - item_min.y;
+    _clicked_frame_pos = {viewport_x / _true_scale, viewport_y / _true_scale};
 }
 
-std::optional<ImVec2> Viewport::get_clicked_position() const {
-    return _clicked_pos;
+std::optional<ImVec2> Viewport::get_clicked_frame_pos() const {
+    return _clicked_frame_pos;
 }
 
 void Viewport::clear_overlay() {
@@ -125,7 +127,7 @@ void Viewport::compose(const ImVec2& size) {
 
     const auto region_size = ImGui::GetContentRegionAvail();
 
-    const auto scale = [&region_size, this] {
+    _true_scale = [&region_size, this] {
         if (_scale == 0.0f) {
             const auto scale_x = region_size.x / _frame_w;
             const auto scale_y = region_size.y / _frame_h;
@@ -135,8 +137,8 @@ void Viewport::compose(const ImVec2& size) {
         }
     }();
 
-    const auto scaled_frame_w = _frame_w * scale;
-    const auto scaled_frame_h = _frame_h * scale;
+    const auto scaled_frame_w = _frame_w * _true_scale;
+    const auto scaled_frame_h = _frame_h * _true_scale;
     const auto scaled_frame_size = ImVec2{scaled_frame_w, scaled_frame_h};
 
     const auto cursor_x =
@@ -156,8 +158,8 @@ void Viewport::compose(const ImVec2& size) {
 
     auto* draw_list = ImGui::GetWindowDrawList();
 
-    draw_polygons(_overlay_polygons, draw_list, image_screen_pos, scale);
-    draw_labels(_overlay_labels, draw_list, image_screen_pos, scale);
+    draw_polygons(_overlay_polygons, draw_list, image_screen_pos, _true_scale);
+    draw_labels(_overlay_labels, draw_list, image_screen_pos, _true_scale);
 }
 
 }  // namespace widget
