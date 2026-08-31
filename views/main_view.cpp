@@ -10,6 +10,20 @@
 #include "../utils.h"
 #include "../widgets/guards.h"
 
+namespace {
+
+std::pair<float, cv::Point3f> transform_pos(const ImVec2& pos,
+                                            const app::State& state) {
+    const auto x = std::round(pos.x);
+    const auto y = std::round(pos.y);
+    const auto depth = state.camera_frame.get_depth(x, y);
+    const auto point = state.camera_frame.project_point(x, y);
+
+    return std::make_pair(depth, point);
+}
+
+}  // namespace
+
 namespace app {
 
 void MainView::on_enter() {
@@ -38,21 +52,19 @@ void MainView::update(app::State& state) {
     }
 
     if (_picker.is_enabled()) {
-        const auto [depth, point] =
-            _viewport.get_clicked_frame_pos()
-                .transform(
-                    [&state](const auto& pos) -> std::pair<float, cv::Point3f> {
-                        const auto x = std::round(pos.x);
-                        const auto y = std::round(pos.y);
-                        const auto depth = state.camera_frame.get_depth(x, y);
-                        const auto point =
-                            state.camera_frame.project_point(x, y);
-                        return std::make_pair(depth, point);
-                    })
+        const auto [depth_l, point_l] =
+            _viewport.get_clicked_pos_l()
+                .transform(std::bind_back(transform_pos, state))
                 .value_or(std::make_pair(0.0f, cv::Point3f{0.0f, 0.0f, 0.0f}));
+        _picker.set_depth_l(depth_l);
+        _picker.set_projected_point_l(point_l);
 
-        _picker.set_depth(depth);
-        _picker.set_projected_point(point);
+        const auto [depth_r, point_r] =
+            _viewport.get_clicked_pos_r()
+                .transform(std::bind_back(transform_pos, state))
+                .value_or(std::make_pair(0.0f, cv::Point3f{0.0f, 0.0f, 0.0f}));
+        _picker.set_depth_r(depth_r);
+        _picker.set_projected_point_r(point_r);
     }
 }
 
@@ -73,8 +85,8 @@ void MainView::compose() {
     _viewport.compose(_viewport_size);
     ImGui::SameLine();
     if (_picker.is_enabled()) {
-        _picker.set_clicked_pos(
-            _viewport.get_clicked_frame_pos().value_or({0.0f, 0.0f}));
+        _picker.set_pos_l(_viewport.get_clicked_pos_l().value_or({0.0f, 0.0f}));
+        _picker.set_pos_r(_viewport.get_clicked_pos_r().value_or({0.0f, 0.0f}));
     }
     _picker.compose();
     compose_viewport_control();

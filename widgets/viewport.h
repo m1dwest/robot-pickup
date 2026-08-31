@@ -11,6 +11,8 @@
 namespace widget {
 
 class Viewport : public Widget {
+    enum ClickedButton { Left = 0, Right = 1 };
+
    public:
     struct OverlayPolygon {
         std::vector<cv::Point2f> points;
@@ -27,8 +29,8 @@ class Viewport : public Widget {
 
     void set_frame(const cv::Mat& frame);
     void set_scale(float scale);
-    void update_clicked_position();
-    std::optional<ImVec2> get_clicked_frame_pos() const;
+    std::optional<ImVec2> get_clicked_pos_l() const;
+    std::optional<ImVec2> get_clicked_pos_r() const;
 
     void clear_overlay();
     void add_overlay_polygon(OverlayPolygon&& polygon);
@@ -38,10 +40,12 @@ class Viewport : public Widget {
     void compose(const ImVec2& size);
 
    private:
+    void update_clicked_pos(ClickedButton);
+
     float _frame_w;
     float _frame_h;
     unsigned _frame_tex = 0;
-    std::optional<ImVec2> _clicked_frame_pos;
+    std::optional<ImVec2> _clicked_pos_l, _clicked_pos_r;
 
     float _scale;
     float _true_scale;

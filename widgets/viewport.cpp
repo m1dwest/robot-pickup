@@ -84,17 +84,23 @@ void Viewport::set_frame(const cv::Mat& frame) {
 
 void Viewport::set_scale(float scale) { _scale = scale; }
 
-void Viewport::update_clicked_position() {
+void Viewport::update_clicked_pos(ClickedButton clickedButton) {
     ImVec2 item_min = ImGui::GetItemRectMin();
     ImVec2 mouse = ImGui::GetMousePos();
 
     auto viewport_x = mouse.x - item_min.x;
     auto viewport_y = mouse.y - item_min.y;
-    _clicked_frame_pos = {viewport_x / _true_scale, viewport_y / _true_scale};
+
+    (clickedButton == ClickedButton::Left ? _clicked_pos_l : _clicked_pos_r) = {
+        viewport_x / _true_scale, viewport_y / _true_scale};
 }
 
-std::optional<ImVec2> Viewport::get_clicked_frame_pos() const {
-    return _clicked_frame_pos;
+std::optional<ImVec2> Viewport::get_clicked_pos_l() const {
+    return _clicked_pos_l;
+}
+
+std::optional<ImVec2> Viewport::get_clicked_pos_r() const {
+    return _clicked_pos_r;
 }
 
 void Viewport::clear_overlay() {
@@ -152,8 +158,11 @@ void Viewport::compose(const ImVec2& size) {
     const auto image_screen_pos = ImGui::GetCursorScreenPos();
 
     ImGui::Image(texture_id, scaled_frame_size);
-    if (ImGui::IsItemClicked()) {
-        update_clicked_position();
+    if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+        update_clicked_pos(ClickedButton::Left);
+    }
+    if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+        update_clicked_pos(ClickedButton::Right);
     }
 
     auto* draw_list = ImGui::GetWindowDrawList();
