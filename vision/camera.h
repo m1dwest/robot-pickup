@@ -17,13 +17,16 @@ struct CameraFrame {
 
     cv::Mat get_color_rgb() const;
     cv::Mat get_depth_rgb() const;
-    float get_distance(int x, int y) const;
+
+    float get_depth(int x, int y) const;
+    cv::Point3f project_point(int x, int y) const;
 
    private:
     rs2::video_frame _color;
     rs2::depth_frame _depth;
     mutable std::optional<cv::Mat> _color_rgb;
     mutable std::optional<cv::Mat> _depth_rgb;
+    mutable std::optional<rs2_intrinsics> _intrinsics;
 
     rs2::colorizer _colorizer;
 };
@@ -54,6 +57,7 @@ class Camera {
     rs2::pipeline_profile _profile;
     std::optional<rs2::sensor> _color_sensor;
     std::optional<rs2::depth_sensor> _depth_sensor;
+    rs2_intrinsics _intrinsics;
     rs2::align _align_to_color;
     float _depth_scale = 0.01f;
 };

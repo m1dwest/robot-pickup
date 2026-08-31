@@ -38,13 +38,21 @@ void MainView::update(app::State& state) {
     }
 
     if (_picker.is_enabled()) {
-        const auto depth = _viewport.get_clicked_frame_pos().transform(
-            [&state](const auto& pos) {
-                return state.camera_frame.get_distance(std::round(pos.x),
-                                                       std::round(pos.y));
-            });
-        // TODO calculate depth only when coordinates has changed
+        const auto [depth, point] =
+            _viewport.get_clicked_frame_pos()
+                .transform(
+                    [&state](const auto& pos) -> std::pair<float, cv::Point3f> {
+                        const auto x = std::round(pos.x);
+                        const auto y = std::round(pos.y);
+                        const auto depth = state.camera_frame.get_depth(x, y);
+                        const auto point =
+                            state.camera_frame.project_point(x, y);
+                        return std::make_pair(depth, point);
+                    })
+                .value_or(std::make_pair(0.0f, cv::Point3f{0.0f, 0.0f, 0.0f}));
+
         _picker.set_depth(depth);
+        _picker.set_projected_point(point);
     }
 }
 
@@ -65,7 +73,8 @@ void MainView::compose() {
     _viewport.compose(_viewport_size);
     ImGui::SameLine();
     if (_picker.is_enabled()) {
-        _picker.set_clicked_pos(_viewport.get_clicked_frame_pos());
+        _picker.set_clicked_pos(
+            _viewport.get_clicked_frame_pos().value_or({0.0f, 0.0f}));
     }
     _picker.compose();
     compose_viewport_control();

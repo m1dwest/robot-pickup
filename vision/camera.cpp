@@ -88,8 +88,24 @@ cv::Mat CameraFrame::get_depth_rgb() const {
     return _depth_rgb.value();
 }
 
-float CameraFrame::get_distance(int x, int y) const {
+float CameraFrame::get_depth(int x, int y) const {
     return _depth.get_distance(x, y);
+}
+
+cv::Point3f CameraFrame::project_point(int x, int y) const {
+    if (!_intrinsics.has_value()) {
+        _intrinsics = _depth.get_profile()
+                          .as<rs2::video_stream_profile>()
+                          .get_intrinsics();
+    }
+
+    const auto depth = get_depth(x, y);
+    const float pixel[2] = {static_cast<float>(x), static_cast<float>(y)};
+
+    cv::Point3f point;
+    rs2_deproject_pixel_to_point(reinterpret_cast<float*>(&point),
+                                 &_intrinsics.value(), pixel, depth);
+    return point;
 }
 
 Camera::Camera() : _align_to_color(RS2_STREAM_COLOR) {

@@ -16,15 +16,17 @@ class Picker : public Widget {
     void compose() override;
 
     bool is_enabled() const;
-    void set_clicked_pos(const std::optional<ImVec2>& pos);
-    void set_depth(const std::optional<float>& depth);
+    void set_clicked_pos(const ImVec2& pos);
+    void set_depth(float depth);
+    void set_projected_point(const cv::Point3f& point);
 
    private:
     ImVec2 _size = ImVec2{360, 240};
-
     bool _is_enabled = false;
-    std::optional<ImVec2> _clicked_pos;
-    std::optional<float> _depth;
+
+    ImVec2 _clicked_pos;
+    float _depth;
+    cv::Point3f _point;
 };
 
 }  // namespace widget
