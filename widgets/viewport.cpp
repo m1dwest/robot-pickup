@@ -60,6 +60,30 @@ void draw_labels(const std::vector<widget::Viewport::OverlayLabel>& labels,
     }
 }
 
+// TODO: pass transformer function
+void draw_points(
+    const std::vector<std::optional<widget::Viewport::OverlayPoint>>& points,
+    ImDrawList* draw_list, ImVec2 cursor_screen_pos, float scale) {
+    for (const auto& point : points) {
+        if (!point.has_value()) {
+            continue;
+        }
+
+        const auto pos = ImVec2{cursor_screen_pos.x + point->pos.x * scale,
+                                cursor_screen_pos.y + point->pos.y * scale};
+
+        draw_list->AddCircleFilled(pos, point->radius, point->color);
+    }
+}
+
+widget::Viewport::OverlayPoint create_point_overlay(const ImVec2& point) {
+    return widget::Viewport::OverlayPoint{
+        .pos = {point.x, point.y},
+        .radius = 3.0f,
+        .color = IM_COL32(255, 0, 0, 255),
+    };
+}
+
 }  // namespace
 
 namespace widget {
@@ -91,8 +115,12 @@ void Viewport::update_clicked_pos(ClickedButton clickedButton) {
     auto viewport_x = mouse.x - item_min.x;
     auto viewport_y = mouse.y - item_min.y;
 
-    (clickedButton == ClickedButton::Left ? _clicked_pos_l : _clicked_pos_r) = {
-        viewport_x / _true_scale, viewport_y / _true_scale};
+    auto [clicked_pos, overlay] =
+        clickedButton == ClickedButton::Left
+            ? std::make_pair(&_clicked_pos_l, &_overlay_point_l)
+            : std::make_pair(&_clicked_pos_r, &_overlay_point_r);
+    *clicked_pos = {viewport_x / _true_scale, viewport_y / _true_scale};
+    *overlay = create_point_overlay(clicked_pos->value());
 }
 
 std::optional<ImVec2> Viewport::get_clicked_pos_l() const {
@@ -169,6 +197,8 @@ void Viewport::compose(const ImVec2& size) {
 
     draw_polygons(_overlay_polygons, draw_list, image_screen_pos, _true_scale);
     draw_labels(_overlay_labels, draw_list, image_screen_pos, _true_scale);
+    draw_points({_overlay_point_l, _overlay_point_r}, draw_list,
+                image_screen_pos, _true_scale);
 }
 
 }  // namespace widget

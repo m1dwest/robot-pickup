@@ -87,11 +87,12 @@ void Picker::compose() {
 
         ImGui::TableNextRow();
         ImGui::TableNextColumn();
-        const auto distance = calculate_distance()
-                                  .transform([](float value) {
-                                      return std::format("{:.4f}", value);
-                                  })
-                                  .value_or("NaN");
+        const auto distance =
+            calculate_distance()
+                .transform([](float value) {
+                    return std::format("{:.4f} mm", value * 1000.0);
+                })
+                .value_or("NaN");
         ImGui::Text("Distance: %s", distance.c_str());
 
         ImGui::EndTable();

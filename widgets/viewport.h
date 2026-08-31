@@ -27,6 +27,12 @@ class Viewport : public Widget {
         ImU32 color;
     };
 
+    struct OverlayPoint {
+        cv::Point2f pos;
+        float radius;
+        ImU32 color;
+    };
+
     void set_frame(const cv::Mat& frame);
     void set_scale(float scale);
     std::optional<ImVec2> get_clicked_pos_l() const;
@@ -52,6 +58,7 @@ class Viewport : public Widget {
 
     std::vector<OverlayPolygon> _overlay_polygons;
     std::vector<OverlayLabel> _overlay_labels;
+    std::optional<OverlayPoint> _overlay_point_l, _overlay_point_r;
 };
 
 }  // namespace widget
