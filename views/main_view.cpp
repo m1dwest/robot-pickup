@@ -5,6 +5,7 @@
 #include <imgui_impl_opengl3.h>
 #include <imgui_stdlib.h>
 #include <plog/Log.h>
+#include <opencv2/core/types.hpp>
 #include <string>
 
 #include "../utils.h"
@@ -20,6 +21,48 @@ std::pair<float, cv::Point3f> transform_pos(const ImVec2& pos,
     const auto point = state.camera_frame.deproject_point(x, y);
 
     return std::make_pair(depth, point);
+}
+
+using OverlayPoint = widget::Viewport::OverlayPoint;
+struct DistanceVis {
+    std::array<OverlayPoint, 2> points;
+    float distance;
+};
+
+std::optional<DistanceVis> visualize_distance(int id_1, int id_2,
+                                              const app::State& state) {
+    static const auto radius = 3.0f;
+    static const auto color = IM_COL32(255, 0, 0, 255);
+
+    std::vector<std::pair<cv::Point2f, cv::Point3f>> points;
+
+    for (const auto& d : state.aruco_detections) {
+        if (d.id == id_1 || d.id == id_2) {
+            auto aruco_center =
+                state.camera_frame.get_aruco_center(d.corners, 5);
+            if (!aruco_center.has_value()) {
+                continue;
+            }
+            points.emplace_back(std::move(aruco_center).value());
+        }
+    }
+
+    if (points.size() != 2) {
+        LOG_ERROR << std::format(
+            "Unable to get distance between aruco {} and {}. {} aruco found",
+            id_1, id_2, points.size());
+        return std::nullopt;
+    }
+
+    const auto overlay_point_1 =
+        OverlayPoint{.pos = points[0].first, .radius = radius, .color = color};
+    const auto overlay_point_2 =
+        OverlayPoint{.pos = points[1].first, .radius = radius, .color = color};
+    const auto distance = static_cast<float>(
+        std::abs(cv::norm(points[0].second - points[1].second)));
+
+    return {
+        {.points = {overlay_point_1, overlay_point_2}, .distance = distance}};
 }
 
 }  // namespace
@@ -49,6 +92,13 @@ void MainView::update(app::State& state) {
         _viewport.add_overlay_label({.pos = polygon_center,
                                      .text = std::to_string(detection.id),
                                      .color = label_color});
+    }
+
+    const auto distance_vis = visualize_distance(48, 53, state);
+    if (distance_vis.has_value()) {
+        _viewport.add_overlay_distance(distance_vis->points[0],
+                                       distance_vis->points[1],
+                                       distance_vis->distance);
     }
 
     if (_picker.is_enabled()) {

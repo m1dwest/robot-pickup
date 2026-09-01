@@ -4,8 +4,6 @@
 #include <opencv2/core/types.hpp>
 #include <opencv2/opencv.hpp>
 
-#include "../utils.h"
-
 namespace {
 
 inline cv::Mat frame_to_mat(const rs2::video_frame& frame, int type) {
@@ -17,10 +15,11 @@ cv::Mat create_mask(const std::vector<cv::Point2f>& vertices, int w, int h) {
     std::vector<cv::Point> polygon;
     polygon.reserve(vertices.size());
 
-    for (const auto& p : vertices)
+    for (const auto& p : vertices) {
         polygon.emplace_back(cvRound(p.x), cvRound(p.y));
+    }
 
-    cv::Mat mask(h, w, CV_8UC1, cv::Scalar(0));
+    cv::Mat mask(w, h, CV_8UC1, cv::Scalar(0));
     cv::fillConvexPoly(mask, polygon, 255);
 
     return mask;
@@ -106,61 +105,78 @@ cv::Point3f CameraFrame::deproject_point(int x, int y, float depth) const {
     return point;
 }
 
-CameraFrame::DepthGeometry CameraFrame::collect_3d_points(
-    const std::vector<cv::Point2f>& vertices, int stride = 1) const {
+std::optional<std::vector<cv::Point3f>> CameraFrame::collect_3d_points(
+    const std::vector<cv::Point2f>& vertices, int stride) const {
+    static const float valid_ratio_threshold = 0.8f;
+
     const auto w = _depth.get_width();
     const auto h = _depth.get_height();
     const auto mask = create_mask(vertices, h, w);
 
-    const auto center =
-        line_intersection(vertices[0], vertices[2], vertices[1], vertices[3]);
-    const auto center_ray = deproject_point(center.x, center.y, 1.0f);
+    std::vector<cv::Point3f> points_3d;
 
-    std::vector<cv::Point3f> points;
+    std::size_t mask_pixel_count = 0;
+    std::size_t invalid_depth_count = 0;
 
     for (int y = 0; y < h; y += stride) {
         for (int x = 0; x < w; x += stride) {
             if (!mask.at<uint8_t>(y, x)) {
                 continue;
             }
+            ++mask_pixel_count;
 
             float depth = get_depth(x, y);
 
+            // TODO: deviation threshold
             if (depth <= 0.0f) {
+                ++invalid_depth_count;
                 continue;
             }
 
-            points.push_back(deproject_point(x, y));
+            points_3d.push_back(deproject_point(x, y));
         }
     }
 
-    return DepthGeometry{
-        .points = points,
-        .center_ray = center_ray,
-    };
+    const auto valid_ratio =
+        static_cast<float>(mask_pixel_count - invalid_depth_count) /
+        static_cast<float>(mask_pixel_count);
+    if (valid_ratio < valid_ratio_threshold) {
+        return std::nullopt;
+    }
+
+    return points_3d;
 }
 
-cv::Point3f CameraFrame::get_deprojected_center(
-    const std::vector<cv::Point2f>& vertices, int stride = 1) const {
-    const auto [points, center_ray] = collect_3d_points(vertices, stride);
+std::optional<std::pair<cv::Point2f, cv::Point3f>>
+CameraFrame::get_aruco_center(const std::vector<cv::Point2f>& vertices,
+                              int stride) const {
+    auto points_3d_opt = collect_3d_points(vertices, stride);
+    if (!points_3d_opt.has_value()) {
+        return std::nullopt;
+    }
+    const auto points_3d = std::move(points_3d_opt).value();
+
+    const auto center_2d =
+        line_intersection(vertices[0], vertices[2], vertices[1], vertices[3]);
+    const auto center_ray = deproject_point(center_2d.x, center_2d.y, 1.0f);
 
     cv::Point3f centroid{0, 0, 0};
 
-    for (const auto& p : points) {
+    for (const auto& p : points_3d) {
         centroid.x += p.x;
         centroid.y += p.y;
         centroid.z += p.z;
     }
 
-    const auto points_n = points.size();
+    const auto points_n = points_3d.size();
     centroid *= 1.0f / points_n;
 
     cv::Mat A(points_n, 3, CV_32F);
 
     for (size_t i = 0; i < points_n; ++i) {
-        A.at<float>(i, 0) = points[i].x - centroid.x;
-        A.at<float>(i, 1) = points[i].y - centroid.y;
-        A.at<float>(i, 2) = points[i].z - centroid.z;
+        A.at<float>(i, 0) = points_3d[i].x - centroid.x;
+        A.at<float>(i, 1) = points_3d[i].y - centroid.y;
+        A.at<float>(i, 2) = points_3d[i].z - centroid.z;
     }
 
     cv::SVD svd(A, cv::SVD::FULL_UV);
@@ -171,9 +187,9 @@ cv::Point3f CameraFrame::get_deprojected_center(
     float d = -normal.dot(cv::Vec3f(centroid.x, centroid.y, centroid.z));
 
     float t = -d / normal.dot(center_ray);
-    cv::Vec3f centerPoint = t * center_ray;
+    cv::Vec3f center_3d = t * center_ray;
 
-    return {centerPoint};
+    return std::make_pair(center_2d, center_3d);
 }
 
 }  // namespace vision

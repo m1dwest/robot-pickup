@@ -20,17 +20,12 @@ struct CameraFrame {
     cv::Point3f deproject_point(int x, int y) const;
     cv::Point3f deproject_point(int x, int y, float depth) const;
 
-    cv::Point3f get_deprojected_center(const std::vector<cv::Point2f>& vertices,
-                                       int stride) const;
+    std::optional<std::pair<cv::Point2f, cv::Point3f>> get_aruco_center(
+        const std::vector<cv::Point2f>& vertices, int stride = 1) const;
 
    private:
-    struct DepthGeometry {
-        std::vector<cv::Point3f> points;
-        cv::Vec3f center_ray;
-    };
-
-    DepthGeometry collect_3d_points(const std::vector<cv::Point2f>& vertices,
-                                    int stride) const;
+    std::optional<std::vector<cv::Point3f>> collect_3d_points(
+        const std::vector<cv::Point2f>& vertices, int stride = 1) const;
 
     rs2::video_frame _color;
     rs2::depth_frame _depth;

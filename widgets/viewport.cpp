@@ -61,18 +61,24 @@ void draw_labels(const std::vector<widget::Viewport::OverlayLabel>& labels,
 }
 
 // TODO: pass transformer function
-void draw_points(
-    const std::vector<std::optional<widget::Viewport::OverlayPoint>>& points,
-    ImDrawList* draw_list, ImVec2 cursor_screen_pos, float scale) {
+void draw_points(const std::vector<widget::Viewport::OverlayPoint>& points,
+                 ImDrawList* draw_list, ImVec2 cursor_screen_pos, float scale) {
     for (const auto& point : points) {
-        if (!point.has_value()) {
-            continue;
-        }
+        const auto pos = ImVec2{cursor_screen_pos.x + point.pos.x * scale,
+                                cursor_screen_pos.y + point.pos.y * scale};
 
-        const auto pos = ImVec2{cursor_screen_pos.x + point->pos.x * scale,
-                                cursor_screen_pos.y + point->pos.y * scale};
+        draw_list->AddCircleFilled(pos, point.radius, point.color);
+    }
+}
 
-        draw_list->AddCircleFilled(pos, point->radius, point->color);
+void draw_lines(const std::vector<widget::Viewport::OverlayLine>& lines,
+                ImDrawList* draw_list, ImVec2 cursor_screen_pos, float scale) {
+    for (const auto& line : lines) {
+        const auto pos_1 = ImVec2{cursor_screen_pos.x + line.p_1.x * scale,
+                                  cursor_screen_pos.y + line.p_1.y * scale};
+        const auto pos_2 = ImVec2{cursor_screen_pos.x + line.p_2.x * scale,
+                                  cursor_screen_pos.y + line.p_2.y * scale};
+        draw_list->AddLine(pos_1, pos_2, line.color, line.thickness);
     }
 }
 
@@ -134,13 +140,36 @@ std::optional<ImVec2> Viewport::get_clicked_pos_r() const {
 void Viewport::clear_overlay() {
     _overlay_polygons.clear();
     _overlay_labels.clear();
+    _overlay_points.clear();
+    _overlay_lines.clear();
 }
 
-void Viewport::add_overlay_polygon(OverlayPolygon&& polygon) {
+void Viewport::add_overlay_polygon(OverlayPolygon polygon) {
     _overlay_polygons.push_back(std::move(polygon));
 }
 
-void Viewport::add_overlay_label(OverlayLabel&& label) {
+void Viewport::add_overlay_label(OverlayLabel label) {
+    _overlay_labels.push_back(std::move(label));
+}
+
+void Viewport::add_overlay_distance(OverlayPoint p_1, OverlayPoint p_2,
+                                    float distance) {
+    _overlay_points.push_back(p_1);
+    _overlay_points.push_back(p_2);
+
+    auto line = OverlayLine{.p_1 = p_1.pos,
+                            .p_2 = p_2.pos,
+                            .thickness = 2.0f,
+                            .color = IM_COL32(255, 0, 0, 255)};
+    _overlay_lines.push_back(std::move(line));
+
+    const auto h_offset = 20.0f;
+    auto label_pos = cv::Point2f{(p_1.pos.x + p_2.pos.x) / 2.0f + h_offset,
+                                 (p_1.pos.y + p_2.pos.y) / 2.0f};
+    auto label =
+        OverlayLabel{.pos = std::move(label_pos),
+                     .text = std::format("{:.2f} mm", distance * 1000.0f),
+                     .color = IM_COL32(255, 0, 0, 255)};
     _overlay_labels.push_back(std::move(label));
 }
 
@@ -197,8 +226,17 @@ void Viewport::compose(const ImVec2& size) {
 
     draw_polygons(_overlay_polygons, draw_list, image_screen_pos, _true_scale);
     draw_labels(_overlay_labels, draw_list, image_screen_pos, _true_scale);
-    draw_points({_overlay_point_l, _overlay_point_r}, draw_list,
-                image_screen_pos, _true_scale);
+    draw_points(_overlay_points, draw_list, image_screen_pos, _true_scale);
+
+    std::vector<OverlayPoint> clicked_points;
+    if (_overlay_point_l.has_value()) {
+        clicked_points.push_back(_overlay_point_l.value());
+    }
+    if (_overlay_point_r.has_value()) {
+        clicked_points.push_back(_overlay_point_r.value());
+    }
+    draw_points(clicked_points, draw_list, image_screen_pos, _true_scale);
+    draw_lines(_overlay_lines, draw_list, image_screen_pos, _true_scale);
 }
 
 }  // namespace widget

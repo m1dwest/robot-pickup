@@ -4,6 +4,7 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 #include <imgui_stdlib.h>
+#include <opencv2/core/types.hpp>
 #include <opencv2/opencv.hpp>
 
 #include "widget.h"
@@ -33,14 +34,22 @@ class Viewport : public Widget {
         ImU32 color;
     };
 
+    struct OverlayLine {
+        cv::Point2f p_1;
+        cv::Point2f p_2;
+        float thickness;
+        ImU32 color;
+    };
+
     void set_frame(const cv::Mat& frame);
     void set_scale(float scale);
     std::optional<ImVec2> get_clicked_pos_l() const;
     std::optional<ImVec2> get_clicked_pos_r() const;
 
     void clear_overlay();
-    void add_overlay_polygon(OverlayPolygon&& polygon);
-    void add_overlay_label(OverlayLabel&& label);
+    void add_overlay_polygon(OverlayPolygon polygon);
+    void add_overlay_label(OverlayLabel label);
+    void add_overlay_distance(OverlayPoint p1, OverlayPoint p2, float distance);
 
     void compose() override;
     void compose(const ImVec2& size);
@@ -58,6 +67,8 @@ class Viewport : public Widget {
 
     std::vector<OverlayPolygon> _overlay_polygons;
     std::vector<OverlayLabel> _overlay_labels;
+    std::vector<OverlayPoint> _overlay_points;
+    std::vector<OverlayLine> _overlay_lines;
     std::optional<OverlayPoint> _overlay_point_l, _overlay_point_r;
 };
 
