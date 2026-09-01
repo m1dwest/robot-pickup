@@ -17,7 +17,7 @@ std::pair<float, cv::Point3f> transform_pos(const ImVec2& pos,
     const auto x = std::round(pos.x);
     const auto y = std::round(pos.y);
     const auto depth = state.camera_frame.get_depth(x, y);
-    const auto point = state.camera_frame.project_point(x, y);
+    const auto point = state.camera_frame.deproject_point(x, y);
 
     return std::make_pair(depth, point);
 }
