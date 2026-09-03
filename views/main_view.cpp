@@ -39,7 +39,7 @@ std::optional<DistanceVis> visualize_distance(int id_1, int id_2,
     for (const auto& d : state.aruco_detections) {
         if (d.id == id_1 || d.id == id_2) {
             auto aruco_center =
-                state.camera_frame.get_aruco_center(d.corners, 5);
+                state.camera_frame.get_aruco_center(d.corners, 3);
             if (!aruco_center.has_value()) {
                 continue;
             }
@@ -48,9 +48,9 @@ std::optional<DistanceVis> visualize_distance(int id_1, int id_2,
     }
 
     if (points.size() != 2) {
-        LOG_ERROR << std::format(
-            "Unable to get distance between aruco {} and {}. {} aruco found",
-            id_1, id_2, points.size());
+        // LOG_ERROR << std::format(
+        //     "Unable to get distance between aruco {} and {}. {} aruco found",
+        //     id_1, id_2, points.size());
         return std::nullopt;
     }
 
@@ -94,7 +94,7 @@ void MainView::update(app::State& state) {
                                      .color = label_color});
     }
 
-    const auto distance_vis = visualize_distance(48, 53, state);
+    const auto distance_vis = visualize_distance(51, 53, state);
     if (distance_vis.has_value()) {
         _viewport.add_overlay_distance(distance_vis->points[0],
                                        distance_vis->points[1],
